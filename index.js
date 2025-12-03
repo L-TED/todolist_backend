@@ -59,12 +59,17 @@ const startServer = async () => {
     validateEnv();
     console.log("Environment variables validated");
 
-    // Test database connection
-    await prisma.$queryRaw`SELECT 1`;
-    console.log("Database connection successful");
+    // Test database connection (non-blocking)
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      console.log("✓ Database connection successful");
+    } catch (dbErr) {
+      console.warn("⚠ Database connection warning:", dbErr.message);
+      console.warn("Server will start but database operations may fail");
+    }
 
     app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+      console.log(`✓ Server is running on port ${PORT}`);
     });
   } catch (err) {
     console.error("Failed to start server:", err);

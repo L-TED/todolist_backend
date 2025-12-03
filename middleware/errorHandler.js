@@ -5,7 +5,12 @@ import { Prisma } from "@prisma/client";
  * Handles Prisma and general application errors
  */
 export const errorHandler = (err, req, res, next) => {
-  console.error("Error:", err);
+  console.error("Error Details:", {
+    name: err.name,
+    message: err.message,
+    code: err.code,
+    stack: err.stack,
+  });
 
   // Prisma Known Request Error
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -31,7 +36,14 @@ export const errorHandler = (err, req, res, next) => {
 
   // Prisma Runtime Error
   if (err instanceof Prisma.PrismaClientRustPanicError) {
+    console.error("Prisma Rust Panic:", err);
     return res.status(500).json({ error: "Internal server error" });
+  }
+
+  // Prisma Connection Error
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    console.error("Prisma Connection Error:", err);
+    return res.status(503).json({ error: "Service unavailable - database connection failed" });
   }
 
   // Custom validation errors
@@ -40,7 +52,12 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   // Default error
-  return res.status(500).json({ error: "Internal server error" });
+  return res
+    .status(500)
+    .json({
+      error: "Internal server error",
+      details: process.env.NODE_ENV === "development" ? err.message : undefined,
+    });
 };
 
 /**

@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model deletedsubtasks {
+  original_id          Int      @id
+  description          String
+  original_todolist_id Int?
+  deleted_at           DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([original_todolist_id])
+}
+
+model deletedtodolists {
+  original_id Int      @id
+  description String
+  deleted_at  DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model subtasks {
+  id          Int        @id @default(autoincrement())
+  description String
+  isdone      Boolean    @default(false)
+  created_at  DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime   @updatedAt @db.Timestamptz(6)
+  todolist_id Int?
+  todolists   todolists? @relation(fields: [todolist_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([todolist_id])
+}
+
+model todolists {
+  id          Int        @id @default(autoincrement())
+  description String
+  isdone      Boolean    @default(false)
+  created_at  DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime   @updatedAt @db.Timestamptz(6)
+  subtasks    subtasks[]
+
+  @@index([created_at])
+}

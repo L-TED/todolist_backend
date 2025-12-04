@@ -58,7 +58,7 @@ const validateEnv = () => {
   }
 };
 
-// Start server
+// Start server (only for local/node execution, not for Vercel)
 const startServer = async () => {
   try {
     validateEnv();
@@ -91,4 +91,10 @@ const startServer = async () => {
   }
 };
 
-startServer();
+// Start server only if not imported as a module (Vercel uses it as module via api/index.js)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  startServer();
+}
+
+// Export for Vercel Serverless Functions
+export default app;

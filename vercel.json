@@ -1,12 +1,11 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
-  "outputDirectory": ".",
   "env": {
     "NODE_ENV": "production"
   },
   "functions": {
-    "index.js": {
+    "api/index.js": {
       "memory": 1024,
       "maxDuration": 60,
       "runtime": "nodejs20.x"
@@ -15,7 +14,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "/index.js"
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/api/index.js"
     }
   ]
 }

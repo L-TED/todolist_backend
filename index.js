@@ -8,9 +8,49 @@ import { prisma } from "./lib/prisma.js";
 
 const app = express();
 
+// 동적 CORS 설정 (환경별)
+const getAllowedOrigins = () => {
+  const nodeEnv = process.env.NODE_ENV || "development";
+
+  if (nodeEnv === "production") {
+    // 프로덕션: 환경 변수에서 허용된 도메인 읽기
+    const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
+    if (allowedOriginsEnv) {
+      return allowedOriginsEnv.split(",").map((origin) => origin.trim());
+    }
+    // 기본값: Vercel, Render 등 배포 환경
+    return [
+      /\.vercel\.app$/,
+      /\.render\.com$/,
+      /\.railway\.app$/,
+      /\.railway\.cloud$/,
+      /\.replit\.dev$/,
+    ];
+  }
+
+  // 개발: 로컬호스트 허용
+  return ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000"];
+};
+
+const corsOptions = {
+  origin: getAllowedOrigins(),
+  credentials: true,
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 200,
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Request logging (개발 환경에서만)
+if (process.env.NODE_ENV !== "production") {
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+  });
+}
 
 // Routes
 app.use("/api/todolists", todolistsRouter);

@@ -4,4 +4,6 @@
 import "dotenv/config";
 import app from "../index.js";
 
+// Vercel requires a default export for serverless functions
+// The app handles all routing automatically
 export default app;

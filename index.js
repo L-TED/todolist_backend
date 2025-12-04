@@ -42,14 +42,19 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 
-// Validate environment variables
+// Validate environment variables - 프로덕션에서는 경고만 표시
 const validateEnv = () => {
   const requiredEnvs = ["DATABASE_URL"];
   const missing = requiredEnvs.filter((env) => !process.env[env]);
 
   if (missing.length > 0) {
-    console.error("Missing environment variables:", missing.join(", "));
-    process.exit(1);
+    console.warn("⚠ Missing environment variables:", missing.join(", "));
+    console.warn("⚠ Attempting to start server anyway...");
+    if (process.env.NODE_ENV === "production") {
+      console.warn("⚠ Production mode: DATABASE_URL should be set for proper operation");
+    }
+  } else {
+    console.log("✓ All required environment variables are set");
   }
 };
 
@@ -57,8 +62,7 @@ const validateEnv = () => {
 const startServer = async () => {
   try {
     validateEnv();
-    console.log("Environment variables validated");
-    console.log(`Environment: ${process.env.NODE_ENV}`);
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 
     // Test database connection with timeout (non-blocking)
     try {
@@ -72,13 +76,13 @@ const startServer = async () => {
         message: dbErr.message,
         env: process.env.NODE_ENV,
       });
-      console.warn("Server will start without immediate DB validation");
+      console.warn("⚠ Server will start but database operations may fail");
     }
 
     app.listen(PORT, () => {
       console.log(`✓ Server is running on port ${PORT}`);
       if (process.env.NODE_ENV === "production") {
-        console.log("Production mode: Vercel + Render deployment");
+        console.log("Production mode: Render deployment active");
       }
     });
   } catch (err) {

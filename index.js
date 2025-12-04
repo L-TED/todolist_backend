@@ -58,18 +58,28 @@ const startServer = async () => {
   try {
     validateEnv();
     console.log("Environment variables validated");
+    console.log(`Environment: ${process.env.NODE_ENV}`);
 
-    // Test database connection (non-blocking)
+    // Test database connection with timeout (non-blocking)
     try {
-      await prisma.$queryRaw`SELECT 1`;
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Connection timeout")), 5000)
+      );
+      await Promise.race([prisma.$queryRaw`SELECT 1`, timeoutPromise]);
       console.log("✓ Database connection successful");
     } catch (dbErr) {
-      console.warn("⚠ Database connection warning:", dbErr.message);
-      console.warn("Server will start but database operations may fail");
+      console.warn("⚠ Database connection warning:", {
+        message: dbErr.message,
+        env: process.env.NODE_ENV,
+      });
+      console.warn("Server will start without immediate DB validation");
     }
 
     app.listen(PORT, () => {
       console.log(`✓ Server is running on port ${PORT}`);
+      if (process.env.NODE_ENV === "production") {
+        console.log("Production mode: Vercel + Render deployment");
+      }
     });
   } catch (err) {
     console.error("Failed to start server:", err);

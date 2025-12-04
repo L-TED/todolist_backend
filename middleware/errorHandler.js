@@ -34,16 +34,43 @@ export const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ error: "Validation error" });
   }
 
-  // Prisma Runtime Error
+  // Prisma Runtime Error (Rust Panic)
   if (err instanceof Prisma.PrismaClientRustPanicError) {
-    console.error("Prisma Rust Panic:", err);
-    return res.status(500).json({ error: "Internal server error" });
+    console.error("[CRITICAL] Prisma Rust Panic:", {
+      message: err.message,
+      code: err.code,
+      timestamp: new Date().toISOString(),
+    });
+    // Vercel/Render 환경에서는 서버 재시작 필요
+    return res.status(503).json({
+      error: "Database service temporarily unavailable",
+      code: "RUST_PANIC",
+    });
   }
 
   // Prisma Connection Error
   if (err instanceof Prisma.PrismaClientInitializationError) {
-    console.error("Prisma Connection Error:", err);
-    return res.status(503).json({ error: "Service unavailable - database connection failed" });
+    console.error("[DATABASE CONNECTION ERROR]", {
+      message: err.message,
+      code: err.code,
+      timestamp: new Date().toISOString(),
+    });
+    return res.status(503).json({
+      error: "Database connection unavailable",
+      code: "CONNECTION_ERROR",
+    });
+  }
+
+  // Handle timeout errors (Render free tier issue)
+  if (err.message && err.message.includes("timeout")) {
+    console.error("[DATABASE TIMEOUT]", {
+      message: err.message,
+      timestamp: new Date().toISOString(),
+    });
+    return res.status(503).json({
+      error: "Database operation timeout",
+      code: "TIMEOUT",
+    });
   }
 
   // Custom validation errors
@@ -52,12 +79,10 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   // Default error
-  return res
-    .status(500)
-    .json({
-      error: "Internal server error",
-      details: process.env.NODE_ENV === "development" ? err.message : undefined,
-    });
+  return res.status(500).json({
+    error: "Internal server error",
+    details: process.env.NODE_ENV === "development" ? err.message : undefined,
+  });
 };
 
 /**
